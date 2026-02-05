@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculatrice Avancée</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #0f172a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    .calculator {
+      background: #020617;
+      padding: 25px;
+      border-radius: 20px;
+      width: 320px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    #display {
+      width: 100%;
+      height: 70px;
+      background: #0f172a;
+      color: #38bdf8;
+      border: 2px solid #1e293b;
+      text-align: right;
+      font-size: 2.2rem;
+      margin-bottom: 20px;
+      padding: 0 15px;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+
+    .expression {
+      font-size: 0.9rem;
+      color: #64748b;
+      height: 20px;
+      text-align: right;
+      padding-right: 10px;
+      margin-bottom: 5px;
+      overflow: hidden;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    button {
+      height: 60px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      background: #1e293b;
+      color: #e5e7eb;
+      transition: all 0.15s;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    button:hover {
+      background: #334155;
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .equal {
+      grid-row: span 2;
+      background: linear-gradient(145deg, #38bdf8, #0ea5e9);
+      color: #020617;
+      font-weight: bold;
+    }
+
+    .equal:hover {
+      background: linear-gradient(145deg, #0ea5e9, #0284c7);
+    }
+
+    .zero {
+      grid-column: span 2;
+    }
+
+    .clear {
+      background: #ef4444;
+    }
+
+    .clear:hover {
+      background: #dc2626;
+    }
+
+    .delete {
+      background: #f59e0b;
+    }
+
+    .delete:hover {
+      background: #d97706;
+    }
+
+    .operator {
+      background: #374151;
+      font-weight: bold;
+    }
+
+    .memory-btn {
+      background: #7c3aed;
+      font-size: 1rem;
+    }
+
+    .memory-btn:hover {
+      background: #6d28d9;
+    }
+
+    .memory-indicator {
+      font-size: 0.8rem;
+      color: #7c3aed;
+      text-align: left;
+      padding-left: 5px;
+      height: 18px;
+      margin-bottom: 5px;
+    }
+
+    .error {
+      color: #ef4444 !important;
+      animation: shake 0.3s;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .calculator-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    .title {
+      font-weight: bold;
+      color: #38bdf8;
+    }
+
+    .theme-toggle {
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="calculator">
+    <div class="calculator-header">
+      <div class="title">CALCULATRICE</div>
+      <button class="theme-toggle" id="themeToggle">🌓</button>
+    </div>
+    
+    <div class="memory-indicator" id="memoryIndicator"></div>
+    <div class="expression" id="expression"></div>
+    
+    <input type="text" id="display" readonly>
+    
+    <div class="buttons">
+      <button class="memory-btn" id="mc">MC</button>
+      <button class="memory-btn" id="mr">MR</button>
+      <button class="memory-btn" id="m+">M+</button>
+      <button class="clear">C</button>
+      
+      <button>/</button>
+      <button>*</button>
+      <button class="delete">←</button>
+      <button class="operator">(</button>
+      
+      <button>7</button>
+      <button>8</button>
+      <button>9</button>
+      <button class="operator">)</button>
+      
+      <button>4</button>
+      <button>5</button>
+      <button>6</button>
+      <button>-</button>
+      
+      <button>1</button>
+      <button>2</button>
+      <button>3</button>
+      <button class="equal">=</button>
+      
+      <button class="zero">0</button>
+      <button>.</button>
+      <button>+</button>
+    </div>
+  </div>
+
+  <script>
+    const display = document.getElementById("display");
+    const expression = document.getElementById("expression");
+    const memoryIndicator = document.getElementById("memoryIndicator");
+    const themeToggle = document.getElementById("themeToggle");
+    const buttons = document.querySelectorAll("button");
+    
+    let memoryValue = 0;
+    let lastExpression = "";
+    let isDarkTheme = true;
+    
+    // Mise à jour de l'indicateur de mémoire
+    function updateMemoryIndicator() {
+      memoryIndicator.textContent = memoryValue !== 0 ? `Mémoire: ${memoryValue}` : "";
+    }
+    
+    // Fonction de calcul sécurisée
+    function safeEval(expr) {
+      // Nettoyage de l'expression pour éviter l'injection de code
+      const cleanedExpr = expr.replace(/[^-()\d/*+.]/g, '');
+      
+      try {
+        // Utilisation de Function plutôt que eval pour plus de sécurité
+        return new Function('return ' + cleanedExpr)();
+      } catch (error) {
+        throw new Error("Expression invalide");
+      }
+    }
+    
+    // Gestion des clics sur les boutons
+    buttons.forEach(button => {
+      button.addEventListener("click", () => {
+        const value = button.textContent;
+        const id = button.id;
+        
+        // Gestion de la mémoire
+        if (id === "mc") {
+          memoryValue = 0;
+          updateMemoryIndicator();
+          return;
+        } else if (id === "mr") {
+          display.value += memoryValue;
+          return;
+        } else if (id === "m+") {
+          try {
+            const currentValue = parseFloat(safeEval(display.value));
+            if (!isNaN(currentValue)) {
+              memoryValue += currentValue;
+              updateMemoryIndicator();
+            }
+          } catch {
+            // Ignorer les erreurs pour M+
+          }
+          return;
+        }
+        
+        // Bouton Clear
+        if (value === "C") {
+          display.value = "";
+          expression.textContent = "";
+          display.classList.remove("error");
+        } 
+        // Bouton Supprimer
+        else if (value === "←") {
+          display.value = display.value.slice(0, -1);
+          display.classList.remove("error");
+        } 
+        // Bouton Égal
+        else if (value === "=") {
+          if (display.value.trim() === "") return;
+          
+          lastExpression = display.value;
+          expression.textContent = lastExpression + " =";
+          
+          try {
+            const result = safeEval(display.value);
+            display.value = parseFloat(result.toFixed(10)).toString();
+            display.classList.remove("error");
+          } catch {
+            display.value = "Erreur";
+            display.classList.add("error");
+          }
+        } 
+        // Boutons numériques et opérateurs
+        else {
+          // Éviter les doubles opérateurs
+          const lastChar = display.value.slice(-1);
+          const operators = ['+', '-', '*', '/', '.'];
+          
+          if (operators.includes(value) && operators.includes(lastChar)) {
+            display.value = display.value.slice(0, -1) + value;
+          } else {
+            display.value += value;
+          }
+          
+          display.classList.remove("error");
+        }
+      });
+    });
+    
+    // Gestion du clavier
+    document.addEventListener("keydown", (event) => {
+      const key = event.key;
+      
+      // Empêcher le comportement par défaut pour les touches de la calculatrice
+      if (/[\d+\-*/.=()]|Enter|Backspace|Delete|Escape/.test(key)) {
+        event.preventDefault();
+      }
+      
+      // Chiffres et opérateurs
+      if (/[\d+\-*/.()]/.test(key)) {
+        display.value += key;
+        display.classList.remove("error");
+      }
+      
+      // Égal ou Entrée
+      if (key === "=" || key === "Enter") {
+        const equalBtn = document.querySelector(".equal");
+        equalBtn.click();
+      }
+      
+      // Effacer (Escape)
+      if (key === "Escape") {
+        const clearBtn = document.querySelector(".clear");
+        clearBtn.click();
+      }
+      
+      // Supprimer (Backspace ou Delete)
+      if (key === "Backspace" || key === "Delete") {
+        const deleteBtn = document.querySelector(".delete");
+        deleteBtn.click();
+      }
+      
+      // Mettre le focus sur l'affichage
+      display.focus();
+    });
+    
+    // Changement de thème
+    themeToggle.addEventListener("click", () => {
+      isDarkTheme = !isDarkTheme;
+      
+      if (isDarkTheme) {
+        document.body.style.background = "#0f172a";
+        document.querySelector(".calculator").style.background = "#020617";
+        display.style.background = "#0f172a";
+        display.style.color = "#38bdf8";
+        themeToggle.textContent = "🌓";
+      } else {
+        document.body.style.background = "#e2e8f0";
+        document.querySelector(".calculator").style.background = "#f8fafc";
+        display.style.background = "#e2e8f0";
+        display.style.color = "#0ea5e9";
+        themeToggle.textContent = "☀️";
+      }
+    });
+    
+    // Initialisation
+    updateMemoryIndicator();
+    
+    // Éviter la saisie directe dans l'affichage
+    display.addEventListener("keydown", (event) => {
+      event.preventDefault();
+    });
+  </script>
+</body>
+</html>
